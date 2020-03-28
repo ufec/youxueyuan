@@ -380,6 +380,8 @@ if __name__ == "__main__":
                 print("正在获取%s章节下所有小节内容" % chapters_item_dict['chapters'][chapterList[j]]['nodetitle'])
                 get_every_section(chapters_item_dict['chapters'][chapterList[j]]['nodeid'],chapters_item_dict['chapters'][chapterList[j]]['items'])
             j += 1
-        exit("本次任务执行完毕")
+        end = 0
+        while end != 1:
+            end = int(input("本次任务执行完毕，输入1退出："))
     else:
         exit("输入有误，程序结束")
