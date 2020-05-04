@@ -6,7 +6,6 @@ import os
 import re
 from moviepy.editor import VideoFileClip
 import time
-import webbrowser
 import random
 
 def login():
@@ -105,10 +104,12 @@ def check_answer(coursepageDTOList):
     print("检测到题目，开始自动答题.....")
     questions = {}
     questionsIds = []
+    parentIds = []
     questionsData = []
     i = 0
     while i < len(coursepageDTOList):
         if coursepageDTOList[i]['questionDTOList']:
+            parentIds.append(coursepageDTOList[i]['parentid'])
             j = 0
             while j < len(coursepageDTOList[i]['questionDTOList']):
                 if coursepageDTOList[i]:
@@ -116,27 +117,28 @@ def check_answer(coursepageDTOList):
                 j += 1
         i += 1
     questionsIdList = list(set(questionsIds))
-    l = 0
-    while l < len(questionsIdList):
-        get_answer_api = "https://api.ulearning.cn/questionAnswer/%d" % questionsIdList[l]
-        response = requests.request(method='GET', url=get_answer_api, headers=headers)
-        answerJson = response.json()
-        if answerJson['subQuestionAnswerDTOList']:
-            n = 0
-            while n < len(answerJson['subQuestionAnswerDTOList']):
-                questions['questionid'] = answerJson['subQuestionAnswerDTOList'][n]['questionid']
-                questions['answerList'] = answerJson['subQuestionAnswerDTOList'][n]['correctAnswerList']
+    for parentId in parentIds:
+        l = 0
+        while l < len(questionsIdList):
+            get_answer_api = "https://api.ulearning.cn/questionAnswer/%d?parentId=%d" % (questionsIdList[l],parentId)
+            response = requests.request(method='GET', url=get_answer_api, headers=headers)
+            answerJson = response.json()
+            if answerJson['subQuestionAnswerDTOList']:
+                n = 0
+                while n < len(answerJson['subQuestionAnswerDTOList']):
+                    questions['questionid'] = answerJson['subQuestionAnswerDTOList'][n]['questionid']
+                    questions['answerList'] = answerJson['subQuestionAnswerDTOList'][n]['correctAnswerList']
+                    questions['score'] = 100
+                    print("第%d道大题的第%d小题答案获取完毕，准备提交..." % (l+1, n+1))
+                    questionsData.append(questions.copy())
+                    n += 1
+            else:
+                questions['questionid'] = answerJson['questionid']
+                questions['answerList'] = answerJson['correctAnswerList']
                 questions['score'] = 100
-                print("第%d道大题的第%d小题答案获取完毕，准备提交..." % (l+1, n+1))
                 questionsData.append(questions.copy())
-                n += 1
-        else:
-            questions['questionid'] = answerJson['questionid']
-            questions['answerList'] = answerJson['correctAnswerList']
-            questions['score'] = 100
-            questionsData.append(questions.copy())
-        print("第%d道大题的答案获取完毕，准备提交..." % (l+1))
-        l += 1
+            print("第%d道大题的答案获取完毕，准备提交..." % (l+1))
+            l += 1
     return questionsData
 
 def speakingEnglish(coursepageDTOList, itemid, relationid):
@@ -192,6 +194,7 @@ def speakingEnglish(coursepageDTOList, itemid, relationid):
                         print("检测到该题未找到音频，将不会上传")
                     j += 1
             i += 1
+        response.close()
     if speak:
         return speak
     else:
@@ -200,14 +203,16 @@ def speakingEnglish(coursepageDTOList, itemid, relationid):
 
 def check_section(wholepageItemDTOList, userInfo, itemsInfo):
     global headers
+    now_time = int(time.time())
     cryptoJsonData = {
         'itemid' : wholepageItemDTOList['itemid'],
         'autoSave' : 1,
-        'version' : '',
-        'withoutOld' : '',
+        'version' : 'null',
+        'withoutOld' : 'null',
         'complete' : 1,
-        'userName' : userInfo['name'],
+        'studyStartTime' : now_time,
         'score' : 100,
+        'userName': userInfo['name'],
         'pageStudyRecordDTOList' : []
     }
     if itemsInfo:
@@ -218,6 +223,7 @@ def check_section(wholepageItemDTOList, userInfo, itemsInfo):
                 'itemid']
             response = requests.request(method='GET', url=get_item_title_api, headers=headers)
             title = response.json()['activity_title']
+            response.close()
         except:
             title = "未获取到标题"
 
@@ -248,10 +254,14 @@ def check_section(wholepageItemDTOList, userInfo, itemsInfo):
                 if videoId:
                     videos = {
                         'videoid': videoId,
-                        'current': 100,
+                        'current': 100+clip.duration,
                         'status': 1,
                         'recordTime': clip.duration,
-                        'time': clip.duration
+                        'time': clip.duration,
+                        'startEndTimeList' : [{
+                            'startTime' : now_time,
+                            'endTime' : now_time + studyTime,
+                        }]
                     }
                 temple['videos'].append(videos)
                 clip.close()
@@ -279,17 +289,13 @@ def check_section(wholepageItemDTOList, userInfo, itemsInfo):
         response = requests.request(method='POST', url="http://47.115.40.125:1234/getSign.php", headers=headers, data=postJsonStr)
         payload = response.text
         response2 = requests.request(method='POST', url="https://api.ulearning.cn/yws/api/personal/sync?courseType=4&platform=PC", headers=headers, data=payload)
-        status = response2.text
-        if status != '1':
-            exit(status)
-        else:
-            print("%s小节已刷完，等待下一节命令执行中......" % title)
+        response2.close()
+        print("%s小节已刷完，等待下一节命令执行中......" % title)
 
 if __name__ == "__main__":
     global Token
     global headers
     print("欢迎使用优学院刷课脚本， 工具只是辅助作用切勿用来盈利，一切后果与作者无关")
-    webbrowser.open("https://github.com/Chirmis")
     try:
         f = open('./cookies.txt')
         f.close()
