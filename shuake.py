@@ -8,6 +8,7 @@ from moviepy.editor import VideoFileClip
 import time
 import random
 
+
 def login():
     global Token
     global headers
@@ -19,12 +20,12 @@ def login():
     opener = urllib.request.build_opener(handler)
     login_url = "https://www.ulearning.cn/umooc/user/login.do"
     values = {
-        "name" : username,
-        "passwd" : password,
-        "yancode" : "",
-        "redirectURL" : "",
-        "isFrom" : "",
-        "newLocale" : ""
+        "name": username,
+        "passwd": password,
+        "yancode": "",
+        "redirectURL": "",
+        "isFrom": "",
+        "newLocale": ""
     }
     postdata = urllib.parse.urlencode(values).encode("UTF-8")
     response = opener.open(login_url, data=postdata)
@@ -38,10 +39,11 @@ def login():
             'AUTHORIZATION': Token['AUTHORIZATION'],
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36'
         }
-        return("登陆成功...")
+        return ("登陆成功...")
     else:
         print("用户名或密码错误，登陆失败")
         login()
+
 
 def get_courses_list():
     global headers
@@ -56,35 +58,39 @@ def get_courses_list():
     else:
         return response.json()['courseList']
 
+
 def get_course_chapters_list(coursesId):
     global headers
     get_textbookId_api = "https://courseapi.ulearning.cn/textbook/student/%d/list" % coursesId
-    #获取该课程的子课程
+    # 获取该课程的子课程
     response = requests.request(method='GET', url=get_textbookId_api, headers=headers)
     listJson = response.json()
-    #获取班级ID
-    get_course_classId_api = "https://courseapi.ulearning.cn/classes/information/student/%d" % coursesId;
+    # 获取班级ID
+    get_course_classId_api = "https://courseapi.ulearning.cn/classes/information/student/%d" % coursesId
     response2 = requests.request(method='GET', url=get_course_classId_api, headers=headers)
     classData = response2.json()
     i = 0
     data = {
-        'textbook' : [],
-        'classInfo' : ''
+        'textbook': [],
+        'classInfo': ''
     }
     while i < len(listJson):
         textbookId = listJson[i]['courseId']
-        get_course_chapters_list_api = "https://courseapi.ulearning.cn/textbook/student/information?ocId=%d&textbookId=%d" % (coursesId, textbookId)
+        get_course_chapters_list_api = "https://courseapi.ulearning.cn/textbook/student/information?ocId=%d&textbookId=%d" % (
+        coursesId, textbookId)
         response3 = requests.request(method='GET', url=get_course_chapters_list_api, headers=headers)
         data['textbook'].append(response3.json()['textbook'])
-        i+=1
+        i += 1
     data['classInfo'] = classData
     return data
+
 
 def get_chapters_item(textbookId, classId):
     global headers
     get_directory_info_api = "https://api.ulearning.cn/course/stu/%d/directory?classId=%d" % (textbookId, classId)
     response = requests.request(method='GET', url=get_directory_info_api, headers=headers)
     return response.json()
+
 
 def get_every_section(nodeid, itemsInfo):
     global headers
@@ -98,6 +104,7 @@ def get_every_section(nodeid, itemsInfo):
     while k < len(sectionDict['wholepageItemDTOList']):
         check_section(sectionDict['wholepageItemDTOList'][k], userInfoDict, itemsInfo[k])
         k += 1
+
 
 def check_answer(coursepageDTOList):
     global headers
@@ -120,7 +127,7 @@ def check_answer(coursepageDTOList):
     for parentId in parentIds:
         l = 0
         while l < len(questionsIdList):
-            get_answer_api = "https://api.ulearning.cn/questionAnswer/%d?parentId=%d" % (questionsIdList[l],parentId)
+            get_answer_api = "https://api.ulearning.cn/questionAnswer/%d?parentId=%d" % (questionsIdList[l], parentId)
             response = requests.request(method='GET', url=get_answer_api, headers=headers)
             answerJson = response.json()
             if answerJson['subQuestionAnswerDTOList']:
@@ -129,7 +136,7 @@ def check_answer(coursepageDTOList):
                     questions['questionid'] = answerJson['subQuestionAnswerDTOList'][n]['questionid']
                     questions['answerList'] = answerJson['subQuestionAnswerDTOList'][n]['correctAnswerList']
                     questions['score'] = 100
-                    print("第%d道大题的第%d小题答案获取完毕，准备提交..." % (l+1, n+1))
+                    print("第%d道大题的第%d小题答案获取完毕，准备提交..." % (l + 1, n + 1))
                     questionsData.append(questions.copy())
                     n += 1
             else:
@@ -137,9 +144,10 @@ def check_answer(coursepageDTOList):
                 questions['answerList'] = answerJson['correctAnswerList']
                 questions['score'] = 100
                 questionsData.append(questions.copy())
-            print("第%d道大题的答案获取完毕，准备提交..." % (l+1))
+            print("第%d道大题的答案获取完毕，准备提交..." % (l + 1))
             l += 1
     return questionsData
+
 
 def speakingEnglish(coursepageDTOList, itemid, relationid):
     global headers
@@ -152,10 +160,10 @@ def speakingEnglish(coursepageDTOList, itemid, relationid):
         while i < len(coursepageDTOList):
             if coursepageDTOList[i]['speak']:
                 j = 0
-                while j <len(coursepageDTOList[i]['speak']['audresp']):
+                while j < len(coursepageDTOList[i]['speak']['audresp']):
                     speaks['speakingid'] = coursepageDTOList[i]['speak']['audresp'][j]['audioid']
                     speaks['score'] = 100
-                    speaks['time'] = random.randint(1,4)
+                    speaks['time'] = random.randint(1, 4)
                     speaks['url'] = coursepageDTOList[i]['speak']['audresp'][j]['audiofileFullurl']
                     direction = coursepageDTOList[i]['speak']['audresp'][j]['direction'].split()
                     num = len(direction)
@@ -180,7 +188,8 @@ def speakingEnglish(coursepageDTOList, itemid, relationid):
         res = response.json()
         i = 0
         while i < len(res['pageStudyRecordDTOList']):
-            if res['pageStudyRecordDTOList'][i]['pageid'] == relationid and res['pageStudyRecordDTOList'][i]['speaks'] and res['pageStudyRecordDTOList'][i]['studyTime'] != 0:
+            if res['pageStudyRecordDTOList'][i]['pageid'] == relationid and res['pageStudyRecordDTOList'][i][
+                'speaks'] and res['pageStudyRecordDTOList'][i]['studyTime'] != 0:
                 j = 0
                 while j < len(res['pageStudyRecordDTOList'][i]['speaks']):
                     if res['pageStudyRecordDTOList'][i]['speaks'][j]['url']:
@@ -188,7 +197,8 @@ def speakingEnglish(coursepageDTOList, itemid, relationid):
                         speaks['score'] = 100
                         speaks['time'] = res['pageStudyRecordDTOList'][i]['speaks'][j]['time']
                         speaks['url'] = res['pageStudyRecordDTOList'][i]['speaks'][j]['url']
-                        speaks['answer'] = re.sub(r'\d+', "100", res['pageStudyRecordDTOList'][i]['speaks'][j]['answer'])
+                        speaks['answer'] = re.sub(r'\d+', "100",
+                                                  res['pageStudyRecordDTOList'][i]['speaks'][j]['answer'])
                         speak.append(speaks.copy())
                     else:
                         print("检测到该题未找到音频，将不会上传")
@@ -201,19 +211,20 @@ def speakingEnglish(coursepageDTOList, itemid, relationid):
         print("程序故障")
         return False
 
+
 def check_section(wholepageItemDTOList, userInfo, itemsInfo):
     global headers
     now_time = int(time.time())
     cryptoJsonData = {
-        'itemid' : wholepageItemDTOList['itemid'],
-        'autoSave' : 1,
-        'version' : 'null',
-        'withoutOld' : 'null',
-        'complete' : 1,
-        'studyStartTime' : now_time,
-        'score' : 100,
+        'itemid': wholepageItemDTOList['itemid'],
+        'autoSave': 1,
+        'version': 'null',
+        'withoutOld': 'null',
+        'complete': 1,
+        'studyStartTime': now_time,
+        'score': 100,
         'userName': userInfo['name'],
-        'pageStudyRecordDTOList' : []
+        'pageStudyRecordDTOList': []
     }
     if itemsInfo:
         title = itemsInfo['title']
@@ -229,51 +240,56 @@ def check_section(wholepageItemDTOList, userInfo, itemsInfo):
 
     studyTime = int(input("请输入本章的%s小节需要的时间(以秒为单位，建议在400-1000，数据过大易封号，时间是叠加的，为0则时间保持不变，负数则时间回退)：" % title))
     temple = {
-        'pageid' : 0,
-        'complete' : 1,
-        'studyTime' : studyTime,
-        'score' : 100,
-        'answerTime' : 1,
-        'submitTimes' : 0,
-        'questions' : [],
-        'videos' : [],
-        'speaks' : [],
+        'pageid': 0,
+        'complete': 1,
+        'studyTime': studyTime,
+        'score': 100,
+        'answerTime': 1,
+        'submitTimes': 0,
+        'questions': [],
+        'videos': [],
+        'speaks': [],
     }
     i = 0
     while i < len(wholepageItemDTOList['wholepageDTOList']):
         k = 0
         while k < len(wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList']):
-            resourceFullurl = wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList'][k]['resourceFullurl']
-            if resourceFullurl == None:
-                pass
-            elif resourceFullurl.find('mp4') > 0:
-                # 防止测验题里面有视频
-                videoId = wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList'][k]['resourceid']
-                print("为了数据真实性，正在获取视频时长，过程缓慢，请耐心等待...")
-                clip = VideoFileClip(resourceFullurl)
-                if videoId:
-                    videos = {
-                        'videoid': videoId,
-                        'current': 100+clip.duration,
-                        'status': 1,
-                        'recordTime': clip.duration,
-                        'time': clip.duration,
-                        'startEndTimeList' : [{
-                            'startTime' : now_time,
-                            'endTime' : now_time + studyTime,
-                        }]
-                    }
-                temple['videos'].append(videos)
-                clip.close()
-                time.sleep(2)
+            if 'resourceFullurl' in wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList'][k]:
+                resourceFullurl = wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList'][k]['resourceFullurl']
+                if resourceFullurl == None:
+                    pass
+                elif resourceFullurl.find('mp4') > 0:
+                    # 防止测验题里面有视频
+                    videoId = wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList'][k]['resourceid']
+                    print("为了数据真实性，正在获取视频时长，过程缓慢，请耐心等待...")
+                    clip = VideoFileClip(resourceFullurl)
+                    print("此视频数据获取完毕...")
+                    if videoId:
+                        videos = {
+                            'videoid': videoId,
+                            'current': 100 + clip.duration,
+                            'status': 1,
+                            'recordTime': clip.duration,
+                            'time': clip.duration,
+                            'startEndTimeList': [{
+                                'startTime': now_time,
+                                'endTime': now_time + studyTime,
+                            }]
+                        }
+                    temple['videos'].append(videos)
+                    clip.close()
+                    time.sleep(2)
+                    print("开启下一项任务...")
             k += 1
         # 图文型
         if wholepageItemDTOList['wholepageDTOList'][i]['contentType'] == 5:
             pass
 
-        #英语读单词
+        # 英语读单词
         if wholepageItemDTOList['wholepageDTOList'][i]['content'] == 'Speaking':
-            speaks = speakingEnglish(wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList'], wholepageItemDTOList['itemid'], wholepageItemDTOList['wholepageDTOList'][i]['relationid'])
+            speaks = speakingEnglish(wholepageItemDTOList['wholepageDTOList'][i]['coursepageDTOList'],
+                                     wholepageItemDTOList['itemid'],
+                                     wholepageItemDTOList['wholepageDTOList'][i]['relationid'])
             temple['speaks'] = speaks
 
         # 测验型
@@ -284,13 +300,19 @@ def check_section(wholepageItemDTOList, userInfo, itemsInfo):
         temple['pageid'] = wholepageItemDTOList['wholepageDTOList'][i]['relationid']
         cryptoJsonData['pageStudyRecordDTOList'].append(temple)
         i += 1
+        print(cryptoJsonData)
         postJsonStr = json.dumps(cryptoJsonData)
         headers['Content-Type'] = 'text/plain'
-        response = requests.request(method='POST', url="http://47.115.40.125:1234/getSign.php", headers=headers, data=postJsonStr)
+        response = requests.request(method='POST', url="https://pay.ufec.cn/getSign.php", headers=headers,
+                                    data=postJsonStr)
+
         payload = response.text
-        response2 = requests.request(method='POST', url="https://api.ulearning.cn/yws/api/personal/sync?courseType=4&platform=PC", headers=headers, data=payload)
+        response2 = requests.request(method='POST',
+                                     url="https://api.ulearning.cn/yws/api/personal/sync?courseType=4&platform=PC",
+                                     headers=headers, data=payload)
         response2.close()
         print("%s小节已刷完，等待下一节命令执行中......" % title)
+
 
 if __name__ == "__main__":
     global Token
@@ -315,7 +337,7 @@ if __name__ == "__main__":
 
     headers = {
         'UA-AUTHORIZATION': Token['token'],
-        'AUTHORIZATION' : Token['AUTHORIZATION'],
+        'AUTHORIZATION': Token['AUTHORIZATION'],
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36'
     }
     resJson = get_courses_list()
@@ -326,7 +348,7 @@ if __name__ == "__main__":
         print("课程编号：%d 课程名称：%s" % (i, resJson[i]['name']))
         i += 1
     coursesId = int(input("请选择课程编号："))
-    if coursesId > total-1:
+    if coursesId > total - 1:
         exit("你哪只眼睛看到了有这个编号？？？")
     print("当前课程编号为：%d; 课程名称：%s" % (coursesId, resJson[coursesId]['name']))
     print("开始获取课程章节....")
@@ -335,18 +357,18 @@ if __name__ == "__main__":
     print("该课程下有%d门小课程" % textbookNum)
     j = 0
     while j < textbookNum:
-        print("第%d门小课程，课程编号为：%d，课程名为：%s" % (j+1, j, course_chapters_list_data['textbook'][j]['courseName']))
+        print("第%d门小课程，课程编号为：%d，课程名为：%s" % (j + 1, j, course_chapters_list_data['textbook'][j]['courseName']))
         j += 1
     if textbookNum == 1:
         chooseTextbookId = 0
     else:
         chooseTextbookId = int(input("请输入小课程编号:"))
 
-    if chooseTextbookId > textbookNum-1:
+    if chooseTextbookId > textbookNum - 1:
         exit("你哪只眼睛看到了有这个编号？？？")
 
     courseName = course_chapters_list_data['textbook'][chooseTextbookId]['courseName']
-    print("当前所选课程编号为：%d，课程名为%s" % (chooseTextbookId,courseName))
+    print("当前所选课程编号为：%d，课程名为%s" % (chooseTextbookId, courseName))
     textbookId = course_chapters_list_data['textbook'][chooseTextbookId]['courseId']
     classId = course_chapters_list_data['classInfo']['classId']
     print("正在获取%s课程下的章节内容" % courseName)
@@ -361,7 +383,7 @@ if __name__ == "__main__":
         while k < chaptersNum:
             print("当前选章节编号为%d，章节名称为：%s" % (k, chapters_item_dict['chapters'][k]['nodetitle']))
             print("正在获取%s章节下所有小节内容" % chapters_item_dict['chapters'][k]['nodetitle'])
-            get_every_section(chapters_item_dict['chapters'][k]['nodeid'],chapters_item_dict['chapters'][k]['items'])
+            get_every_section(chapters_item_dict['chapters'][k]['nodeid'], chapters_item_dict['chapters'][k]['items'])
             k += 1
     elif status == 0:
         k = 0
@@ -382,9 +404,11 @@ if __name__ == "__main__":
         while j < len(chapterList):
             if int(chapterList[j]) <= chaptersNum:
                 chapterList[j] = int(chapterList[j])
-                print("当前选章节编号为%d，章节名称为：%s" % (chapterList[j], chapters_item_dict['chapters'][chapterList[j]]['nodetitle']))
+                print("当前选章节编号为%d，章节名称为：%s" % (
+                chapterList[j], chapters_item_dict['chapters'][chapterList[j]]['nodetitle']))
                 print("正在获取%s章节下所有小节内容" % chapters_item_dict['chapters'][chapterList[j]]['nodetitle'])
-                get_every_section(chapters_item_dict['chapters'][chapterList[j]]['nodeid'],chapters_item_dict['chapters'][chapterList[j]]['items'])
+                get_every_section(chapters_item_dict['chapters'][chapterList[j]]['nodeid'],
+                                  chapters_item_dict['chapters'][chapterList[j]]['items'])
             j += 1
         end = 0
         while end != 1:
